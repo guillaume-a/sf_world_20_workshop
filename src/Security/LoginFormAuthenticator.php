@@ -6,17 +6,18 @@ namespace App\Security;
 
 use App\Entity\User;
 use Doctrine\ORM\EntityManagerInterface;
+use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\Routing\RouterInterface;
 use Symfony\Component\Security\Core\Authentication\Token\TokenInterface;
-use Symfony\Component\Security\Core\Exception\AuthenticationException;
-use Symfony\Component\Security\Http\Authenticator\AbstractAuthenticator;
+use Symfony\Component\Security\Http\Authenticator\AbstractLoginFormAuthenticator;
 use Symfony\Component\Security\Http\Authenticator\Passport\Badge\UserBadge;
 use Symfony\Component\Security\Http\Authenticator\Passport\Credentials\PasswordCredentials;
 use Symfony\Component\Security\Http\Authenticator\Passport\Passport;
 use Symfony\Component\Security\Http\Authenticator\Passport\PassportInterface;
 
-class LoginFormAuthenticator extends AbstractAuthenticator
+class LoginFormAuthenticator extends AbstractLoginFormAuthenticator
 {
 
     /**
@@ -24,16 +25,15 @@ class LoginFormAuthenticator extends AbstractAuthenticator
      */
     private $em;
 
-    public function __construct(EntityManagerInterface $em)
+    /**
+     * @var \Symfony\Component\Routing\RouterInterface
+     */
+    private $router;
+
+    public function __construct(EntityManagerInterface $em, RouterInterface $router)
     {
         $this->em = $em;
-    }
-
-    public function supports(Request $request): ?bool
-    {
-        return
-          $request->isMethod(Request::METHOD_POST) &&
-          $request->attributes->get('_route') === 'app_login';
+        $this->router = $router;
     }
 
     public function authenticate(Request $request): PassportInterface
@@ -54,11 +54,14 @@ class LoginFormAuthenticator extends AbstractAuthenticator
     }
 
     public function onAuthenticationSuccess(Request $request,TokenInterface $token,string $firewallName): ?Response {
-
+        return new RedirectResponse(
+          $this->router->generate('app_homepage')
+        );
     }
 
-    public function onAuthenticationFailure(Request $request,AuthenticationException $exception): ?Response {
-
+    protected function getLoginUrl(Request $request): string
+    {
+        return $this->router->generate('app_login');
     }
 
 }
