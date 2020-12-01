@@ -21,6 +21,8 @@ security:
             custom_authenticators:
                 - App\Security\LoginFormAuthenticator
             lazy: true
+            login_throttling:
+                max_attempts: 3
             http_basic: true
             provider: app_user_provider
             remember_me:
