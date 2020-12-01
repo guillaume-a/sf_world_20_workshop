@@ -2,6 +2,7 @@
 
 namespace App\DataFixtures;
 
+use App\Entity\User;
 use App\Factory\ApiTokenFactory;
 use App\Factory\UserFactory;
 use Doctrine\Bundle\FixturesBundle\Fixture;
@@ -13,7 +14,7 @@ class AppFixtures extends Fixture
     {
         $ryan = UserFactory::new()->create([
             'email' => 'ryan@symfonycasts.com',
-            'plainPassword' => 'foo',
+            'plainPassword' => User::GLOBAL_DEFAULT_PASSWORD,
             'roles' => ['ROLE_USER', 'ROLE_ADMIN']
         ]);
 
@@ -28,6 +29,15 @@ class AppFixtures extends Fixture
 
         ApiTokenFactory::new()->createMany(2, [
             'user' => $fabien,
+        ]);
+
+        $badUser = UserFactory::new()->create([
+            'email' => 'bad_user@symfony.com',
+            'plainPassword' => 'foo',
+        ]);
+
+        ApiTokenFactory::new()->createMany(2, [
+            'user' => $badUser,
         ]);
     }
 }

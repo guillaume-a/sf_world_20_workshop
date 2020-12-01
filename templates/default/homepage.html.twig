@@ -8,6 +8,8 @@
         <thead>
             <tr>
                 <th>Email</th>
+                <th>Password</th>
+                <th>Last Login</th>
                 <th>Roles</th>
                 <th>API Tokens</th>
             </tr>
@@ -16,6 +18,8 @@
             {% for user in users %}
                 <tr>
                     <td>{{ user.email }}</td>
+                    <th><code>{{ globalPassword }}</code></th>
+                    <th>{{ user.lastLoginAt ? user.lastLoginAt|ago : 'never' }}</th>
                     <td>{{ user.roles|join(', ') }}</td>
                     <td>
                         <ul class="list-group">

@@ -14,6 +14,8 @@ use Symfony\Component\Security\Core\User\UserInterface;
  */
 class User implements UserInterface
 {
+    public const GLOBAL_DEFAULT_PASSWORD = 'foo';
+
     /**
      * @ORM\Id
      * @ORM\GeneratedValue
@@ -43,6 +45,11 @@ class User implements UserInterface
      * @ORM\OneToMany(targetEntity=ApiToken::class, mappedBy="user")
      */
     private $tokens;
+
+    /**
+     * @ORM\Column(type="datetime_immutable", nullable=true)
+     */
+    private $lastLoginAt;
 
     public function __construct()
     {
@@ -145,5 +152,15 @@ class User implements UserInterface
     public function getTokens(): Collection
     {
         return $this->tokens;
+    }
+
+    public function getLastLoginAt(): ?\DateTimeInterface
+    {
+        return $this->lastLoginAt;
+    }
+
+    public function setLastLoginAt(\DateTimeInterface $lastLoginAt)
+    {
+        $this->lastLoginAt = $lastLoginAt;
     }
 }
