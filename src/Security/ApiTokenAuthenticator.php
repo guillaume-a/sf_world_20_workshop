@@ -4,26 +4,30 @@
 namespace App\Security;
 
 
+use App\Entity\ApiToken;
+use App\Repository\ApiTokenRepository;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Security\Core\Authentication\Token\TokenInterface;
 use Symfony\Component\Security\Core\Exception\AuthenticationException;
+use Symfony\Component\Security\Core\Exception\CustomUserMessageAuthenticationException;
+use Symfony\Component\Security\Core\Exception\LogicException;
+use Symfony\Component\Security\Http\Authenticator\AuthenticatorInterface;
 use Symfony\Component\Security\Http\Authenticator\Passport\Badge\UserBadge;
 use Symfony\Component\Security\Http\Authenticator\Passport\PassportInterface;
 use Symfony\Component\Security\Http\Authenticator\Passport\SelfValidatingPassport;
+use Symfony\Component\Security\Http\Authenticator\Passport\UserPassportInterface;
+use Symfony\Component\Security\Http\Authenticator\Token\PostAuthenticationToken;
 
-class ApiTokenAuthenticator extends \Symfony\Component\Security\Http\Authenticator\AbstractAuthenticator
+class ApiTokenAuthenticator implements AuthenticatorInterface
 {
 
-    /**
-     * @var \App\Security\UserTokenLoader
-     */
-    private $loader;
+    /** @var \App\Repository\ApiTokenRepository  */
+    private $repository;
 
-    public function __construct(UserTokenLoader $loader) {
-
-        $this->loader = $loader;
+    public function __construct(ApiTokenRepository $repository) {
+        $this->repository = $repository;
     }
 
     /**
@@ -39,12 +43,25 @@ class ApiTokenAuthenticator extends \Symfony\Component\Security\Http\Authenticat
      */
     public function authenticate(Request $request): PassportInterface
     {
-        return new SelfValidatingPassport(
+        $token = $request->headers->get('X-TOKEN');
+        $apiToken = $this->repository->findOneBy(['token' => $token]);
+
+        $passport = new SelfValidatingPassport(
           new UserBadge(
             $request->headers->get('X-TOKEN', ''),
-            $this->loader
+            function () use ($apiToken) {
+                if(!$apiToken instanceof ApiToken) {
+                    throw new CustomUserMessageAuthenticationException("Oh no !");
+                }
+
+                return $apiToken->getUser();
+            }
           )
         );
+
+        $passport->setAttribute('api_token', $apiToken);
+
+        return $passport;
     }
 
     /**
@@ -63,6 +80,24 @@ class ApiTokenAuthenticator extends \Symfony\Component\Security\Http\Authenticat
             'messagge' => $exception->getMessageKey(),
           ], 401
         );
+    }
+
+    public function createAuthenticatedToken(PassportInterface $passport, string $firewallName): TokenInterface
+    {
+        if (!$passport instanceof SelfValidatingPassport) {
+            throw new LogicException(sprintf('Passport does not contain a user, overwrite "createAuthenticatedToken()" in "%s" to create a custom authenticated token.', \get_class($this)));
+        }
+
+        $roles = $passport->getUser()->getRoles();
+
+        /** @var ApiToken $apiToken */
+        $apiToken = $passport->getAttribute('api_token');
+
+        foreach($apiToken->getScopes() as $scope) {
+            $roles[] = 'ROLE_SCOPE_' . strtoupper($scope);
+        }
+
+        return new PostAuthenticationToken($passport->getUser(), $firewallName, $roles);
     }
 
 }
