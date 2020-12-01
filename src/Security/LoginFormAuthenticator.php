@@ -4,14 +4,12 @@
 namespace App\Security;
 
 
-use App\Entity\User;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\RouterInterface;
 use Symfony\Component\Security\Core\Authentication\Token\TokenInterface;
-use Symfony\Component\Security\Core\Exception\CustomUserMessageAuthenticationException;
 use Symfony\Component\Security\Http\Authenticator\AbstractLoginFormAuthenticator;
 use Symfony\Component\Security\Http\Authenticator\Passport\Badge\CsrfTokenBadge;
 use Symfony\Component\Security\Http\Authenticator\Passport\Badge\UserBadge;
@@ -32,10 +30,16 @@ class LoginFormAuthenticator extends AbstractLoginFormAuthenticator
      */
     private $router;
 
-    public function __construct(EntityManagerInterface $em, RouterInterface $router)
+    /**
+     * @var \App\Security\UserLoader
+     */
+    private $userLoader;
+
+    public function __construct(EntityManagerInterface $em, RouterInterface $router, UserLoader $userLoader)
     {
         $this->em = $em;
         $this->router = $router;
+        $this->userLoader = $userLoader;
     }
 
     public function authenticate(Request $request): PassportInterface
@@ -44,21 +48,10 @@ class LoginFormAuthenticator extends AbstractLoginFormAuthenticator
         $password = $request->request->get('password', '');
         $csrfToken = $request->request->get('_csrf_token', '');
 
-        $userBadge = new UserBadge($email, function($email) {
-            $user = $this->em->getRepository(User::class)->findOneBy(['email' => $email]);
-
-            if(!$user instanceof User) {
-                throw new CustomUserMessageAuthenticationException("Oh no !");
-            }
-
-            return $user;
-        });
-
-        $credentials = new PasswordCredentials($password);
-
         return new Passport(
-          $userBadge,
-          $credentials, [
+          new UserBadge($email, $this->userLoader),
+          new PasswordCredentials($password),
+          [
             new CsrfTokenBadge('authenticate', $csrfToken)
           ]
         );
