@@ -18,6 +18,7 @@ security:
             anonymous: true
             lazy: true
             provider: app_user_provider
+            http_basic: true
             logout:
                 path: app_logout
 
