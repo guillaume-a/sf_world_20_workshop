@@ -38,4 +38,17 @@ class ApiTokenFunctionalTest extends WebTestCase
             'roles' => ['ROLE_USER'],
         ], $data);
     }
+
+    public function testApiToken401()
+    {
+        $client = self::createClient();
+
+        // X-TOKEN is the header name
+        $client->request('GET', '/secure', [], [], [
+          'HTTP_X-TOKEN' => 'wrong-token',
+          'HTTP_ACCEPT' => 'application/json'
+        ]);
+
+        $this->assertResponseStatusCodeSame(401);
+    }
 }
