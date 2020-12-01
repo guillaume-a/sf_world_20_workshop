@@ -17,9 +17,11 @@ security:
             pattern: ^/(_(profiler|wdt)|css|images|js)/
             security: false
         main:
+            entry_point: App\Security\LoginFormAuthenticator
             custom_authenticators:
                 - App\Security\LoginFormAuthenticator
             lazy: true
+            http_basic: true
             provider: app_user_provider
             remember_me:
                 secret: '%kernel.secret%'
